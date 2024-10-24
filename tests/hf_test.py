@@ -90,17 +90,27 @@ def start_main_process():
 
     # Function to read and print stdout
     def read_stdout():
-        for line in iter(process.stdout.readline, ''):
-            print(f"{Fore.GREEN}[Server STDOUT]{Style.RESET_ALL} {line}", end='')
+        while True:
+            line = process.stdout.readline()
+            if line:
+                print(f"{Fore.GREEN}[Server STDOUT]{Style.RESET_ALL} {line}", end='')
+            else:
+                if process.poll() is not None:
+                    break
 
     # Function to read and print stderr
     def read_stderr():
-        for line in iter(process.stderr.readline, ''):
-            print(f"{Fore.RED}[Server STDERR]{Style.RESET_ALL} {line}", end='')
+        while True:
+            line = process.stderr.readline()
+            if line:
+                print(f"{Fore.RED}[Server STDERR]{Style.RESET_ALL} {line}", end='')
+            else:
+                if process.poll() is not None:
+                    break
 
     # Start threads to read stdout and stderr
-    stdout_thread = threading.Thread(target=read_stdout)
-    stderr_thread = threading.Thread(target=read_stderr)
+    stdout_thread = threading.Thread(target=read_stdout, daemon=True)
+    stderr_thread = threading.Thread(target=read_stderr, daemon=True)
     stdout_thread.start()
     stderr_thread.start()
 
@@ -110,7 +120,7 @@ def start_main_process():
     yield process
 
     # Terminate the process after tests
-    process.send_signal(signal.SIGINT)
+    process.terminate()
     try:
         process.wait(timeout=10)
     except subprocess.TimeoutExpired:
